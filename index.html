@@ -12,6 +12,408 @@
   gtag('config', 'G-XLBMG2GBC2');
 </script>
 
+<script>
+/** <<< НАСТРОЙКА >>> **/
+window.DXRT_BOT_ID = "33861362-4d55-4587-91b4-51931ffbe2d1";   // <- впиши сюда botId
+// window.DXRT_DEBUG = true;                   // <- опционально: подробные логи в консоль
+
+(function(){
+  "use strict";
+
+  /* ==========================
+     КОНФИГ И КОНСТАНТЫ
+     ========================== */
+  const API_HOST = "https://bot-dev.108dev.ru";
+  const WS_PATH  = "/api/realtime/backend-proxy";
+
+  const SERVER_AUDIO_RATE  = 24000; // вых. звук бота (pcm16)
+  const CAPTURE_AUDIO_RATE = 48000; // микрофон (ресэмплим в 24k)
+
+  const VAD = {                     // клиентский VAD
+    START_RMS: 0.020,
+    END_RMS:   0.010,
+    SILENCE_MS: 600,
+    MAX_UTTER_MS: 9000,
+    MIN_FRAMES_24K: 12000          // ≈0.5s @24k — гарантируем «осмысленность»
+  };
+
+  const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // авто-выключение через 5 минут тишины
+  const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000];
+
+  const BOT_ID = window.DXRT_BOT_ID;
+  if (!BOT_ID) { console.error("[DXRT] Не задан DXRT_BOT_ID"); return; }
+  const DEBUG = !!window.DXRT_DEBUG;
+
+  /* ==========================
+     ВСПОМОГАТЕЛЬНОЕ
+     ========================== */
+  function info(){ if (DEBUG) try{ console.info("[DXRT]", ...arguments);}catch{} }
+  function warn(){ try{ console.warn("[DXRT]", ...arguments);}catch{} }
+  function err (){ try{ console.error("[DXRT]", ...arguments);}catch{} }
+
+  // cookies (chatId)
+  function setCookie(name, value) {
+    try { document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax${location.protocol==="https:"?"; Secure":""}`; } catch {}
+  }
+  function getCookie(name) {
+    try { const m = document.cookie.match(new RegExp("(^| )"+name+"=([^;]+)")); return m ? decodeURIComponent(m[2]) : null; } catch { return null; }
+  }
+  function getOrCreateChatId(botId){
+    const key = "dxrt_chatId_" + botId;
+    let cid = getCookie(key);
+    if (!cid) { cid = "guest_" + Math.random().toString(36).slice(2); setCookie(key, cid); }
+    return cid;
+  }
+
+  // base64/pcm helpers
+  function floatTo16(f32){ const buf=new ArrayBuffer(f32.length*2), v=new DataView(buf); for(let i=0;i<f32.length;i++){ let s=Math.max(-1,Math.min(1,f32[i])); v.setInt16(i*2, s<0?s*0x8000:s*0x7fff, true);} return new Uint8Array(buf); }
+  function bytesToB64(bytes){ let b=""; for(let i=0;i<bytes.length;i++) b+=String.fromCharCode(bytes[i]); return btoa(b); }
+  function b64ToInt16(b64){ const bin=atob(b64); const out=new Int16Array(bin.length/2); for(let i=0,j=0;i<bin.length;i+=2,j++){ const lo=bin.charCodeAt(i), hi=bin.charCodeAt(i+1), v=(hi<<8)|lo; out[j]=(v&0x8000)?v-0x10000:v; } return out; }
+  function int16ToFloat32(i16){ const o=new Float32Array(i16.length); for(let i=0;i<i16.length;i++) o[i]=Math.max(-1,Math.min(1,i16[i]/32768)); return o; }
+  function resampleTo24k(f32, fromRate){
+    if (fromRate===24000) return f32;
+    if (fromRate===48000){ const o=new Float32Array(Math.floor(f32.length/2)); for(let i=0,j=0;j<o.length;i+=2,j++) o[j]=f32[i]; return o; }
+    const ratio=24000/fromRate, outLen=Math.floor(f32.length*ratio), o=new Float32Array(outLen);
+    for(let i=0;i<outLen;i++){ const srcPos=i/ratio, i0=Math.floor(srcPos), i1=Math.min(i0+1,f32.length-1), t=srcPos-i0; o[i]=f32[i0]*(1-t)+f32[i1]*t; }
+    return o;
+  }
+
+  /* ==========================
+     UI (Shadow DOM, яркие цвета)
+     ========================== */
+  const host = document.createElement("div");
+  host.id = "dxrt-voice-widget";
+  host.style.position = "fixed";
+  host.style.zIndex = "2147483647";
+  host.style.right = "24px";
+  host.style.bottom = "24px";
+  document.addEventListener("DOMContentLoaded", () => document.body.appendChild(host));
+  const root = host.attachShadow({mode:"open"});
+  const css = document.createElement("style");
+  css.textContent = `
+    :host { all: initial; }
+    .wrap { position: relative; }
+    .btn {
+      all: unset; cursor: pointer; width: 56px; height: 56px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: radial-gradient(120% 120% at 0% 0%, #ff8a00 0%, #ff3b3b 100%);
+      box-shadow: 0 6px 20px rgba(0,0,0,.35);
+      transition: transform .12s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 26px rgba(0,0,0,.4); }
+    .btn.off  { background: radial-gradient(120% 120% at 0% 0%, #7a7a7a 0%, #444 100%); }
+    .icon { width: 26px; height: 26px; color: white; }
+
+    .dot { position:absolute; width:12px; height:12px; border-radius:50%; opacity:.9; transform: translateZ(0); }
+    .dot.user { background:#34d8ff; right: -4px; top: -4px; }
+    .dot.bot  { background:#ff34c4; left:  -4px; bottom:-4px; }
+    .pulse { animation: pulse 1.2s infinite; }
+    @keyframes pulse {
+      0% { box-shadow:0 0 0 0 rgba(255,255,255,.6); }
+      70%{ box-shadow:0 0 0 14px rgba(255,255,255,0); }
+      100%{ box-shadow:0 0 0 0 rgba(255,255,255,0); }
+    }
+
+    .toast{
+      position:absolute; right:70px; bottom:8px; max-width:260px;
+      background:#10131a; color:#e9eef9; border:1px solid #2b3445;
+      border-radius:12px; padding:10px 12px; font: 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      box-shadow:0 8px 24px rgba(0,0,0,.35);
+      display:none;
+    }
+    .toast.show { display:block; }
+    .toast b{ color:#7bc6ff; }
+  `;
+  const wrap = document.createElement("div"); wrap.className = "wrap";
+  const btn  = document.createElement("button"); btn.className = "btn off"; btn.setAttribute("aria-label","Голосовой ассистент");
+  btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/>
+  </svg>`;
+  const dotUser = document.createElement("div"); dotUser.className = "dot user";
+  const dotBot  = document.createElement("div"); dotBot.className  = "dot bot";
+  const toast   = document.createElement("div"); toast.className   = "toast";
+  toast.innerHTML = `Для работы нужен доступ к <b>микрофону</b>. Нажмите «Разрешить» в запросе браузера.`;
+  root.appendChild(css); wrap.appendChild(btn); wrap.appendChild(dotUser); wrap.appendChild(dotBot); wrap.appendChild(toast); root.appendChild(wrap);
+
+  function setUserPulse(on){ dotUser.classList.toggle("pulse", !!on); }
+  function setBotPulse (on){ dotBot .classList.toggle("pulse", !!on); }
+  let toastTimer=null, toastShown=false;
+  function showToast(){ if (toastShown) return; toast.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>toast.classList.remove("show"), 4000); }
+  function toastOnce(msg){ toast.innerHTML = msg; toastShown=true; showToast(); }
+
+  /* ==========================
+     СОСТОЯНИЕ СЕССИИ
+     ========================== */
+  let desiredOn = false;     // целевое состояние (вкл/выкл)
+  let jwt = null, chatId = getOrCreateChatId(BOT_ID);
+  let ws = null, reconnectTry = 0, closingByUser = false;
+
+  // mic
+  let audioCtx=null, mediaStream=null, srcNode=null, procNode=null, micOn=false;
+
+  // VAD / бардж-ин
+  let speaking=false, utterStartAt=0, lastLoudAt=0, framesInUtter=0, bargeSent=false;
+
+  // bot audio
+  let playCtx=null, playbackTime=0, activeNodes=[], muteServerAudio=false, botSpeaking=false;
+
+  // idle
+  let lastActivity = Date.now();
+  setInterval(() => {
+    if (desiredOn && Date.now() - lastActivity > IDLE_TIMEOUT_MS) {
+      info("idle timeout → off");
+      toggleOff("idle_timeout");
+    }
+  }, 10000);
+
+  /* ==========================
+     СЕТЬ: TOKEN + WS
+     ========================== */
+  async function getGuestToken(botId, chatId){
+    const url = `${API_HOST}/api/websocket/token/guest/${encodeURIComponent(botId)}?chatId=${encodeURIComponent(chatId)}`;
+    const res = await fetch(url, { method:"POST" });
+    if (!res.ok) throw new Error("token http "+res.status);
+    return res.json(); // { token, user }
+  }
+
+  function wsSend(obj){
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    try { ws.send(JSON.stringify(obj)); } catch {}
+  }
+
+  function openWS(){
+    if (ws && (ws.readyState===WebSocket.OPEN || ws.readyState===WebSocket.CONNECTING)) return;
+    const qp = new URLSearchParams({ botId: BOT_ID, token: jwt, preloadMessages: "true", messageLimit: "50" });
+    const url = `wss://bot-dev.108dev.ru${WS_PATH}?` + qp.toString();
+    info("WS connect", url);
+    ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      info("WS open");
+      reconnectTry = 0;
+      wsSend({ type:"session.update", session:{
+        modalities:["text","audio"],
+        instructions:"Отвечай по сути, без приветствий, кратко.",
+        input_audio_format:"pcm16",
+        output_audio_format:"pcm16"
+      }});
+      if (desiredOn && !micOn) startMic();
+    };
+    ws.onclose = () => {
+      info("WS close");
+      if (!closingByUser && desiredOn) scheduleReconnect();
+    };
+    ws.onerror = () => warn("WS error");
+    ws.onmessage = (ev) => {
+      lastActivity = Date.now();
+      let d; try { d = JSON.parse(ev.data); } catch { return; }
+      const t = d.type;
+
+      // во время бардж-ина игнорируем хвост предыдущей реплики
+      if (muteServerAudio && (t==="response.audio.delta" || t==="response.delta" || t==="response.output_text.delta")) return;
+
+      if (t === "response.audio.delta" && d.delta) {
+        botSpeaking = true; setBotPulse(true);
+        playAudioChunk(d.delta);
+        return;
+      }
+      if (t === "response.output_text.delta" || t === "response.delta") {
+        botSpeaking = true; setBotPulse(true);
+        return;
+      }
+      if (t === "response.completed") {
+        botSpeaking = false; setBotPulse(false);
+        return;
+      }
+      if (t === "response.error") {
+        botSpeaking = false; setBotPulse(false);
+        toastOnce("Ошибка ответа. Попробуйте ещё раз.");
+        return;
+      }
+    };
+  }
+
+  function scheduleReconnect(){
+    const delay = RECONNECT_STEPS[Math.min(reconnectTry++, RECONNECT_STEPS.length-1)];
+    info("reconnect in", delay, "ms");
+    setTimeout(async () => {
+      if (!desiredOn) return;
+      try{
+        jwt = (await getGuestToken(BOT_ID, chatId)).token;
+        openWS();
+      }catch(e){ scheduleReconnect(); }
+    }, delay);
+  }
+
+  function closeWS(){
+    if (!ws) return;
+    closingByUser = true;
+    try { ws.close(4000, "user"); } catch {}
+    ws = null; closingByUser = false;
+  }
+
+  /* ==========================
+     АУДИО ВЫХОД (бот)
+     ========================== */
+  function stopAllBotAudio(hard=false){
+    try { for (const s of activeNodes) { try { s.stop(0); } catch{} } }
+    finally {
+      activeNodes = [];
+      if (playCtx) {
+        try { playbackTime = playCtx.currentTime; } catch{}
+        if (hard) { try { playCtx.close(); } catch{} playCtx = null; playbackTime = 0; }
+      }
+    }
+  }
+
+  async function playAudioChunk(b64){
+    if (muteServerAudio) return;
+    try{
+      if (!playCtx) { playCtx = new (window.AudioContext||window.webkitAudioContext)({ sampleRate: SERVER_AUDIO_RATE }); playbackTime = playCtx.currentTime; }
+      if (playCtx.state === "suspended") { try { await playCtx.resume(); } catch{} }
+      const f32 = int16ToFloat32( b64ToInt16(b64) );
+      const buf = playCtx.createBuffer(1, f32.length, SERVER_AUDIO_RATE);
+      buf.getChannelData(0).set(f32);
+      const src = playCtx.createBufferSource(); src.buffer = buf; src.connect(playCtx.destination);
+      activeNodes.push(src);
+      src.onended = () => { const i = activeNodes.indexOf(src); if (i>=0) activeNodes.splice(i,1); };
+      const now = playCtx.currentTime;
+      playbackTime = Math.max(playbackTime, now);
+      src.start(playbackTime);
+      playbackTime += buf.duration;
+    }catch(e){ warn("audio out err", e.message); }
+  }
+
+  /* ==========================
+     АУДИО ВХОД (микрофон + VAD + бардж-ин)
+     ========================== */
+  async function startMic(){
+    if (micOn) return;
+    showToast();
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      audioCtx = audioCtx ?? new Ctx({ sampleRate: CAPTURE_AUDIO_RATE });
+    } catch {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      audioCtx = audioCtx ?? new Ctx();
+    }
+    if (!audioCtx) { toastOnce("AudioContext недоступен"); return; }
+    if (audioCtx.state === "suspended") { try { await audioCtx.resume(); } catch{} }
+
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true }
+      });
+    } catch (e) {
+      toastOnce("Нет доступа к микрофону. Разрешите в настройках браузера.");
+      return;
+    }
+
+    srcNode = audioCtx.createMediaStreamSource(mediaStream);
+    procNode = audioCtx.createScriptProcessor(2048, 1, 1);
+
+    framesInUtter = 0; speaking = false; bargeSent = false;
+
+    procNode.onaudioprocess = (e) => {
+      if (!micOn) return;
+      lastActivity = Date.now();
+
+      const in48 = e.inputBuffer.getChannelData(0);
+
+      // 1) стрим @24k → append
+      const f24 = resampleTo24k(in48, audioCtx.sampleRate || CAPTURE_AUDIO_RATE);
+      framesInUtter += f24.length;
+      const b64 = bytesToB64( floatTo16(f24) );
+      wsSend({ type:"input_audio_buffer.append", audio: b64 });
+
+      // 2) клиентский VAD (RMS)
+      let sum=0; for (let i=0;i<in48.length;i++){ const s=in48[i]; sum+=s*s; }
+      const rms = Math.sqrt(sum / in48.length);
+      const t   = performance.now();
+
+      if (!speaking) {
+        if (rms >= VAD.START_RMS) {
+          speaking = true; utterStartAt = t; lastLoudAt = t;
+          setUserPulse(true);
+
+          // Бардж-ин: останавливаем озвучку и глушим хвостовые дельты
+          if (!bargeSent && botSpeaking) {
+            muteServerAudio = true;
+            stopAllBotAudio(true);
+            wsSend({ type:"response.cancel" });
+            bargeSent = true;
+          }
+          framesInUtter = 0; // новая фраза
+        }
+      } else {
+        if (rms >= VAD.END_RMS) lastLoudAt = t;
+
+        const longEnough = framesInUtter >= VAD.MIN_FRAMES_24K;
+        const silenceOver= (t - lastLoudAt) >= VAD.SILENCE_MS;
+        const tooLong    = (t - utterStartAt) >= VAD.MAX_UTTER_MS;
+
+        if (silenceOver || tooLong) {
+          speaking = false; setUserPulse(false);
+          if (longEnough) {
+            wsSend({ type:"input_audio_buffer.commit" });
+            wsSend({ type:"response.create" });
+            muteServerAudio = false;  // принимаем новую реплику
+          }
+          framesInUtter = 0; bargeSent = false;
+        }
+      }
+    };
+
+    srcNode.connect(procNode);
+    procNode.connect(audioCtx.destination);
+
+    micOn = true;
+    btn.classList.remove("off");
+  }
+
+  async function stopMic(silent=false){
+    if (!micOn && !silent) return;
+    try{
+      procNode && procNode.disconnect();
+      srcNode  && srcNode.disconnect();
+      mediaStream && mediaStream.getTracks().forEach(t=>t.stop());
+    }catch{}
+    procNode=null; srcNode=null; mediaStream=null; micOn=false; setUserPulse(false);
+    btn.classList.add("off");
+  }
+
+  /* ==========================
+     ТОГГЛ ВИДЖЕТА
+     ========================== */
+  async function toggleOn(){
+    if (desiredOn) return;
+    desiredOn = true; lastActivity = Date.now();
+    try {
+      jwt = (await getGuestToken(BOT_ID, chatId)).token;
+    } catch(e) {
+      toastOnce("Не удалось получить токен. Попробуйте позже.");
+      desiredOn = false; return;
+    }
+    openWS();           // сессия; startMic() вызовется в onopen
+  }
+
+  function toggleOff(reason="user"){
+    desiredOn = false;
+    stopMic(true);
+    stopAllBotAudio(true);
+    muteServerAudio = false;
+    botSpeaking = false; setBotPulse(false);
+    closeWS();
+  }
+
+  btn.addEventListener("click", () => {
+    if (!desiredOn) toggleOn(); else toggleOff("user");
+  });
+
+})();
+</script>
+
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Multiplyr Fridge — холодильник, который приумножает еду</title>
