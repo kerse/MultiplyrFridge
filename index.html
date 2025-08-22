@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ru">
+<head>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XLBMG2GBC2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-XLBMG2GBC2');
+</script>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multiplyr Fridge — холодильник, который приумножает еду</title>
+  <meta name="description" content="Холодильник из альтернативной вселенной. Приумножает еду с разными вероятностями. Иногда вместо еды появляется монстр." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0b0c10;--card:#11131a;--muted:#9ca3b5;--text:#eef1f7;--brand:#6ee7ff;--accent:#b388ff;--danger:#ff6e6e;--ok:#7bffb1}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(1200px 800px at 80% 0%, #162434 0%, var(--bg) 55%), var(--bg);color:var(--text);line-height:1.55}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1160px;margin:0 auto;padding:24px}
+    header{position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);background:linear-gradient(180deg, rgba(11,12,16,.85), rgba(11,12,16,.35));border-bottom:1px solid rgba(255,255,255,.06)}
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:12px 24px}
+    .logo{display:inline-flex;gap:10px;align-items:center;font-weight:800}
+    .dot{width:10px;height:10px;border-radius:50%;background:conic-gradient(from 90deg,var(--brand),var(--accent))}
+    .links{display:flex;gap:18px;align-items:center}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:14px;background:linear-gradient(180deg,#1a1f2c,#11141c);border:1px solid rgba(255,255,255,.08);color:var(--text);font-weight:600;box-shadow:0 10px 30px rgba(179,136,255,.06)}
+    .btn.primary{background:linear-gradient(180deg,#153242,#10202d);border-color:rgba(110,231,255,.35)}
+    .btn:hover{box-shadow:0 12px 36px rgba(110,231,255,.15)}
+    .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;padding:52px 24px 36px}
+    .kicker{color:var(--brand);font-weight:600;letter-spacing:.4px;text-transform:uppercase;font-size:12px}
+    h1{font-size:clamp(34px,6vw,60px);line-height:1.05;margin:8px 0 14px}
+    .lead{color:var(--muted);font-size:18px;max-width:56ch}
+    .cta{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}
+    .hero-card{background:linear-gradient(180deg,#0f1420,#0b0c10);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:14px;position:relative;box-shadow:0 40px 100px rgba(110,231,255,.05)}
+    .hero-img{width:100%;height:420px;object-fit:cover;border-radius:14px;display:block;border:1px solid rgba(255,255,255,.06)}
+    .chip{position:absolute;bottom:16px;left:16px;background:rgba(18,21,32,.85);border:1px solid rgba(255,255,255,.08);padding:10px 12px;border-radius:12px;font-size:13px;color:var(--muted)}
+    section{padding:64px 24px}
+    .section-title{font-size:clamp(26px,4vw,38px);margin:0 0 10px}
+    .section-lead{color:var(--muted);max-width:64ch}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}
+    .card{background:linear-gradient(180deg,#0f131d,#0c0e14);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px}
+    .card h3{margin:6px 0 6px;font-size:18px}
+    .card p{color:var(--muted)}
+    .how{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}
+    .how img{width:100%;height:320px;object-fit:cover;border-radius:14px;border:1px solid rgba(255,255,255,.06)}
+    .specs{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+    .bullets{display:grid;gap:12px;margin:12px 0}
+    .bullets li{list-style:none;padding-left:12px;position:relative;color:var(--muted)}
+    .bullets li::before{content:"";position:absolute;left:-2px;top:8px;width:6px;height:6px;border-radius:50%;background:linear-gradient(90deg,var(--brand),var(--accent))}
+    .warning{background:linear-gradient(180deg,#220e12,#16090c);border:1px solid rgba(255,255,255,.08);border-left:6px solid var(--danger);border-radius:16px;padding:18px;color:#ffd6d6}
+    .demo{background:linear-gradient(180deg,#0e1726,#0b111b);border:1px solid rgba(110,231,255,.2);border-radius:16px;padding:18px}
+    .demo label{color:var(--muted);font-size:14px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    input[type=range]{width:100%}
+    .out{margin-top:12px;padding:12px;border-radius:12px;background:#0e1320;border:1px solid rgba(255,255,255,.06);font-family:ui-monospace,Menlo,Consolas,monospace}
+    footer{border-top:1px solid rgba(255,255,255,.06);color:var(--muted);padding:32px 24px;text-align:center}
+    @media (max-width:980px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.how{grid-template-columns:1fr}.specs{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav wrap">
+      <div class="logo"><span class="dot"></span> Multiplyr Fridge</div>
+      <nav class="links">
+        <a href="#features">Как это работает</a>
+        <a href="#prob">Вероятности</a>
+        <a href="#specs">Характеристики</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn primary" href="#preorder">Предзаказ</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <div>
+        <div class="kicker">Вероятностная кухня</div>
+        <h1>Холодильник, который приумножает еду</h1>
+        <p class="lead">Положите продукты, закройте дверцу, подождите. Откройте и получите иные пропорции, новые блюда или дополнительную порцию. Редко, но вместо еды может появиться монстр. Мы предупредили.</p>
+        <div class="cta">
+          <a class="btn primary" href="#preorder">Оформить предзаказ</a>
+          <a class="btn" href="#prob">Как распределяются шансы</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <!-- IMAGE BRIEF: широкий кадр футуристичной кухни в холодных неоновых оттенках; в центре сияющий холодильник Multiplyr с мягким голубым светом; high‑end sci‑fi; лёгкие частицы; глубина резкости. Соотношение 21:9. -->
+        <img id="hero-img" class="hero-img" src="images/hero-multiplyr.jpg" alt="Футуристичная кухня с Multiplyr Fridge" />
+        <div class="chip">Алхимия вероятностей у вас дома</div>
+      </div>
+    </section>
+
+    <section id="features" class="wrap">
+      <h2 class="section-title">Как это работает</h2>
+      <p class="section-leад">Внутри Multiplyr Fridge работает вероятностный ферментатор с квантовым вкусообразованием. Итог зависит от множества входных сигналов, которые устройство считывает бесконтактно.</p>
+      <div class="grid">
+        <article class="card">
+          <!-- IMAGE BRIEF: крупный план закрытой двери Multiplyr, минималистичный вид, мягкие отблески, эмблема с тонким свечением. 4:3. -->
+          <img id="img-closed" src="images/product-closed.png" alt="Multiplyr Fridge, вид спереди" style="width:100%;height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.06)" />
+          <h3>Шаг 1. Положите еду</h3>
+          <p>Фрукты, овощи, заготовки или остатки вчерашнего. Multiplyr считывает текстуры, питательные профили и потенциальные сочетания.</p>
+        </article>
+        <article class="card">
+          <!-- IMAGE BRIEF: интерьер камеры, мягкое сияние, контейнеры, полупрозрачный туман, лабораторная чистота. 4:3. -->
+          <img id="img-open" src="images/product-open.png" alt="Multiplyr Fridge, интерьер" style="width:100%;height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.06)" />
+          <h3>Шаг 2. Закройте дверцу</h3>
+          <p>Запускается вероятностная ферментация. Система учитывает внешние и внутренние переменные и подбирает благоприятные сценарии приумножения.</p>
+        </article>
+        <article class="card">
+          <!-- IMAGE BRIEF: коллаж из неожиданных блюд: сливочная паста, миска с фруктами, пирог, роллы; лёгкая глитч‑эстетика; акцент на разнообразии и изобилии. 16:9. -->
+          <img id="img-outcomes" src="images/outcomes.png" alt="Разнообразные результаты" style="width:100%;height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.06)" />
+          <h3>Шаг 3. Откройте и удивляйтесь</h3>
+          <p>Получите новые пропорции, дополнительные порции или легкую трансформацию блюда. Иногда выходит идеальный баланс вкусов, иногда экспериментальная вариация.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="prob" class="wrap">
+      <h2 class="section-title">Что влияет на шансы</h2>
+      <p class="section-lead">Multiplyr не создаёт из ничего. Он перераспределяет, клонирует текстуры и оформляет вкусы в вероятностном поле. Эти факторы сдвигают результат.</p>
+      <div class="grid">
+        <article class="card"><h3>Небо и земля</h3><p>Фаза Луны, давление, температура, влажность, индекс солнечной активности.</p></article>
+        <article class="card"><h3>Вы и окружение</h3><p>Микровыражения лица, тембр голоса, ритм плейлиста, уровень кофеина, ночные поиски рецептов.</p></article>
+        <article class="card"><h3>Дом</h3><p>Мурчание кота в герцах, канал соседского Wi‑Fi, активность закваски, график ближайшего трамвая.</p></article>
+        <article class="card"><h3>Космос</h3><p>Космические лучи, ретроградность Меркурия, аномалии Шумана.</p></article>
+        <article class="card"><h3>Социальный шум</h3><p>Плотность мемов в ленте, последние чаты о еде, уровень пересылаемости рецептов.</p></article>
+        <article class="card"><h3>Хаос</h3><p>Случайный выброс энтропии. Иногда прекрасный. Иногда монстр.</p></article>
+      </div>
+      <div class="demo" style="margin-top:26px">
+        <h3 style="margin:0 0 10px">Мини‑демо вероятностей</h3>
+        <p class="section-lead">Поиграйтесь ползунками и посмотрите, как меняются шансы. Это иллюстрация, не реальный алгоритм.</p>
+        <div class="row">
+          <div>
+            <label for="moon">Фаза Луны</label>
+            <input id="moon" type="range" min="0" max="100" value="40">
+            <label for="weather">Погода (давление)</label>
+            <input id="weather" type="range" min="930" max="1040" value="1000">
+            <label for="mood">Настроение владельца</label>
+            <input id="mood" type="range" min="0" max="100" value="60">
+          </div>
+          <div>
+            <label for="purr">Мурчание кота, Гц</label>
+            <input id="purr" type="range" min="20" max="40" value="28">
+            <label for="wifi">Канал Wi‑Fi соседа</label>
+            <input id="wifi" type="range" min="1" max="13" value="6">
+            <label for="cosmic">Космические лучи</label>
+            <input id="cosmic" type="range" min="0" max="100" value="35">
+          </div>
+        </div>
+        <div id="out" class="out">…</div>
+      </div>
+    </section>
+
+    <section id="specs" class="wrap">
+      <h2 class="section-title">Характеристики</h2>
+      <div class="specs">
+        <div>
+          <ul class="bullets">
+            <li>Объём камеры: 420 л. Вероятностный ферментатор: 2 кассеты.</li>
+            <li>Сенсоры: лунометр, барометр, спектрометр мемов, котометр, Wi‑Fi‑сканер, космо‑счётчик.</li>
+            <li>Режимы: Деликатный, Праздничный, Ночная кухня, Антимонстр Beta.</li>
+            <li>Уровень шума: 19–24 дБ. Потребление: от 33 Вт.</li>
+            <li>Защита: авто‑блокировка при повышенном риске монстра.</li>
+          </ul>
+          <div class="warning" style="margin-top:12px">
+            <strong>Важно.</strong> С ненулевой вероятностью вместо еды может появиться монстр. Встроенный модуль Антимонстр снижает риск, но не исключает его полностью. Владельцу следует читать руководство и не класть внутрь вещи, которые вы не готовы умножить.
+          </div>
+        </div>
+        <div class="card">
+          <!-- IMAGE BRIEF: изометрический рендер Multiplyr Fridge на темном фоне, тонкая каемка подсветки; рядом небольшие пиктограммы сенсоров. 1:1. -->
+          <img id="img-isometric" src="images/isometric.png" alt="Multiplyr Fridge — изометрия" style="width:100%;height:340px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.06)" />
+          <p style="color:var(--muted);margin-top:10px">В комплекте руководство пользователя и наклейка «я дружу с вероятностью».</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="preorder" class="wrap">
+      <h2 class="section-title">Предзаказ</h2>
+      <p class="section-lead">Первая партия ограничена. Оставьте почту и получите приглашение. Оплата при отгрузке. Монстр не входит в комплект.</p>
+      <form class="card" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Заявка отправлена';">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:center">
+          <input type="email" required placeholder="ваш@email" style="padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0f1420;color:var(--text)">
+          <button class="btn primary" type="submit">Оставить заявку</button>
+        </div>
+        <p style="color:var(--muted);margin:10px 0 0;font-size:14px">Нажимая кнопку, вы соглашаетесь с вероятностной природой результата.</p>
+      </form>
+    </section>
+
+    <section id="faq" class="wrap">
+      <h2 class="section-title">FAQ</h2>
+      <div class="grid">
+        <article class="card"><h3>Из чего появляется еда</h3><p>Из уже положенных продуктов. Multiplyr переупаковывает, клонирует текстуры и меняет пропорции. Создания «из ничего» нет.</p></article>
+        <article class="card"><h3>Как часто выпадает монстр</h3><p>Редко. Точный процент плавает и зависит от множества факторов. Включайте режим Антимонстр и читайте руководство.</p></article>
+        <article class="card"><h3>Можно ли отключить влияние Луны</h3><p>Нет. Но можно сгладить влияние через стабильные ритмы в доме и спокойный плейлист.</p></article>
+        <article class="card"><h3>Что делать при появлении монстра</h3><p>Не кормить. Не смотреть в глаза. Закрыть дверцу и активировать протокол возврата содержимого. Подробности в руководстве.</p></article>
+        <article class="card"><h3>Подходит для детей</h3><p>Да, при включённой детской защите и нулевом доступе к режимам Праздничный и Ночная кухня.</p></article>
+        <article class="card">
+          <!-- IMAGE BRIEF: смешной, нестрашный «монстр из холодильника» в стилистике дружелюбного графического персонажа; тёмный фон, лёгкое неоновое свечение. 16:9. -->
+          <img id="img-monster" src="images/monster.png" alt="Дружелюбный монстр" style="width:100%;height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.06)" />
+          <h3>Он правда такой страшный</h3><p>Чаще просто любопытный. Но мы обязаны предупредить.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">© Multiplyr Lab. Вероятность прекрасного всегда выше нуля.</div>
+  </footer>
+
+  <script>
+    const els = ['moon','weather','mood','purr','wifi','cosmic'].map(id=>document.getElementById(id));
+    const out = document.getElementById('out');
+    function calc(){
+      const moon = +document.getElementById('moon').value;      // 0..100
+      const weather = +document.getElementById('weather').value; // 930..1040
+      const mood = +document.getElementById('mood').value;       // 0..100
+      const purr = +document.getElementById('purr').value;       // 20..40
+      const wifi = +document.getElementById('wifi').value;       // 1..13
+      const cosmic = +document.getElementById('cosmic').value;   // 0..100
+
+      // Небольшая шутливая математика для иллюстрации
+      let base = 0.45;
+      base += (moon-50)/1000;                 // луна
+      base += (weather-985)/3000;             // давление
+      base += (mood-50)/800;                  // настроение
+      base += (purr-30)/200;                  // кот
+      base -= Math.abs(wifi-6)/120;           // соседский канал
+      base += (50-cosmic)/900;                // космические лучи
+
+      let food = Math.max(0, Math.min(0.9, base));
+      let perfect = Math.max(0, Math.min(0.5, 0.1 + (mood/100)*0.2 + (50-Math.abs(moon-50))/400));
+      let monster = Math.max(0.01, 1 - (food + perfect));
+
+      // нормировка
+      const s = food + perfect + monster;
+      food/=s; perfect/=s; monster/=s;
+
+      const fmt = x => (x*100).toFixed(1)+"%";
+      const verdict = monster>0.18? 'Риск монстра заметен. Включите Антимонстр.' : (perfect>0.33? 'Шанс идеального блюда высокий.' : 'Ожидается аккуратное приумножение.');
+
+      out.innerHTML = `
+        <div><strong>Приумножение:</strong> ${fmt(food)} • <strong>Идеальное блюдо:</strong> ${fmt(perfect)} • <strong>Монстр:</strong> ${fmt(monster)}</div>
+        <div style="margin-top:6px;color:${monster>0.18?'#ffd6d6':'#a3f7cf'}">${verdict}</div>
+      `;
+    }
+    els.forEach(e=>e.addEventListener('input',calc));
+    calc();
+  </script>
+</body>
+</html>
